@@ -1,0 +1,20 @@
+p = 17
+a = 2
+b = 3
+
+def is_quadratic_residue(n, p):
+    # sprawdza, czy istnieje y: y^2 ≡ n (mod p)
+    return pow(n, (p - 1) // 2, p) == 1
+
+def points_on_curve():
+    points = []
+    for x in range(p):
+        rhs = (x**3 + a*x + b) % p
+        for y in range(p):
+            if (y * y) % p == rhs:
+                points.append((x, y))
+    return points
+
+print("Punkty na krzywej:")
+for pt in points_on_curve():
+    print(pt)

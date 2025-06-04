@@ -1,0 +1,125 @@
+import os
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import classification_report, accuracy_score
+
+# === KONFIGURACJA ===
+DATA_DIR = r"C:\Users\aerga\Desktop\dane\wse stocks"
+OUTPUT_DIR = r"C:\Users\aerga\Desktop\dane\wyniki"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+WIG20_TICKERS = {
+    "alior": "alr",
+    "allegro": "ale",
+    "budimex": "bdx",
+    "ccc": "ccc",
+    "cd projekt": "cdr",
+    "dino": "dnp",
+    "kghm": "kgh",
+    "kruk": "kru",
+    "lpp": "lpp",
+    "mbank": "mbk",
+    "orange": "opl",
+    "pekao": "pko",
+    "pepco": "pep",
+    "pge": "pge",
+    "pkn": "pkn",
+    "pko": "pko",
+    "pzu": "pzu",
+    "santander": "spl"
+}
+
+# Funkcja do obliczania średnich kroczących (SMA)
+def add_sma_features(df):
+    df['SMA5'] = df['<CLOSE>'].rolling(window=5).mean()
+    df['SMA21'] = df['<CLOSE>'].rolling(window=21).mean()
+    return df
+
+# Funkcja do obliczania RSI
+def add_rsi(df, window=14):
+    delta = df['<CLOSE>'].diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
+    rs = gain / loss
+    df['RSI'] = 100 - (100 / (1 + rs))
+    return df
+
+# Funkcja przygotowująca dane do modelu
+def prepare_data(df):
+    df = add_sma_features(df)
+    df = add_rsi(df)
+    df['price_change'] = df['<CLOSE>'].diff()
+    df['state'] = df['price_change'].apply(lambda x: 1 if x > 0 else (-1 if x < 0 else 0))
+    df = df.dropna(subset=['SMA5', 'SMA21', 'RSI'])  # Usuwamy NaN
+    return df
+
+# === PRZETWARZANIE DANYCH ===
+results = []
+
+for name, ticker in WIG20_TICKERS.items():
+    data_file = os.path.join(DATA_DIR, f"{ticker}.txt")
+    if not os.path.isfile(data_file):
+        print(f"Brak danych dla spółki: {name} ({ticker})")
+        continue
+    try:
+        df = pd.read_csv(data_file, sep=',', header=0)
+    except PermissionError as e:
+        print(f"Brak dostępu do pliku: {data_file}")
+        continue
+    except Exception as e:
+        print(f"Błąd podczas wczytywania pliku {data_file}: {e}")
+        continue
+
+    df['datetime'] = pd.to_datetime(df['<DATE>'].astype(str) + df['<TIME>'].astype(str), format='%Y%m%d%H%M%S')
+    df = df.sort_values('datetime').reset_index(drop=True)
+
+    df = prepare_data(df)
+    
+    # Przygotowanie cech i etykiet
+    X = df[['SMA5', 'SMA21', 'RSI']]  # Cechy
+    y = df['state']  # Etykieta (wzrost/spadek)
+
+    # Podział na dane treningowe i testowe
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Model Random Forest
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+
+    # Predykcje
+    y_pred = model.predict(X_test)
+
+    # Ocena modelu
+    print(f"Ocena modelu dla spółki {name}:")
+    print(classification_report(y_test, y_pred))
+    print(f"Accuracy: {accuracy_score(y_test, y_pred):.4f}")
+    print("-" * 40)
+
+    # Dodanie wyników do zbioru wyników
+    next_probs = pd.DataFrame({
+        'Company': [name] * len(y_pred),
+        'Ticker': [ticker] * len(y_pred),
+        'Predicted_State': y_pred
+    })
+    results.append(next_probs)
+
+# Zapisz scalone wyniki
+final_df = pd.concat(results, ignore_index=True)
+final_df.to_csv(os.path.join(OUTPUT_DIR, 'wig20_predictions.csv'), index=False)
+
+# === RYSUJ WYKRES SŁUPKOWY ===
+plt.figure(figsize=(20, 15))
+
+for i, row in final_df.iterrows():
+    if row['Predicted_State'] == 1:
+        plt.bar(row['Company'], 1, color='green', label=row['Company'])
+    elif row['Predicted_State'] == -1:
+        plt.bar(row['Company'], -1, color='red', label=row['Company'])
+
+plt.title("Przewidywane stany rynków WIG20", fontsize=18)
+plt.xticks(rotation=90)
+plt.tight_layout()
+plt.show()

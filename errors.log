@@ -1,0 +1,19 @@
+[2025-05-29 19:37:31.269380] TypeError: unsupported operand type(s) for -: 'datetime.datetime' and 'float'
+[2025-06-02 12:44:43.064167] TypeError: only length-1 arrays can be converted to Python scalars
+[2025-06-02 13:44:45.853734] NameError: name 'sp500_top100' is not defined
+[2025-06-02 13:44:49.893339] NameError: name 'sp500_top100' is not defined
+[2025-06-02 17:34:48.713173] TypeError: only length-1 arrays can be converted to Python scalars
+[2025-06-02 19:05:06.454442] AttributeError: 'NoneType' object has no attribute 'empty'
+[2025-06-02 19:05:09.819068] AttributeError: 'NoneType' object has no attribute 'empty'
+[2025-06-03 22:47:41.573154] HTTPError: HTTP Error 404: 
+[2025-06-04 08:27:04.347731] ValueError: Tylko jedna unikalna wartoœæ w target
+[2025-06-04 08:29:06.765574] TypeError: only length-1 arrays can be converted to Python scalars
+[2025-06-04 08:32:15.510675] TypeError: only length-1 arrays can be converted to Python scalars
+[2025-06-04 08:53:38.700197] NameError: name 'sp500_top10' is not defined
+[2025-06-04 10:37:55.992193] NameError: name 'sp500_top10' is not defined
+[2025-06-04 10:58:10.940439] TypeError: only length-1 arrays can be converted to Python scalars
+[2025-06-04 11:02:18.054047] TypeError: only length-1 arrays can be converted to Python scalars
+[2025-06-04 11:15:53.282146] TypeError: only length-1 arrays can be converted to Python scalars
+[2025-06-04 11:18:32.475524] TypeError: only length-1 arrays can be converted to Python scalars
+[2025-06-04 11:23:19.349930] TypeError: only length-1 arrays can be converted to Python scalars
+[2025-06-04 11:31:16.144166] HTTPError: HTTP Error 404: 

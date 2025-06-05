@@ -53,12 +53,12 @@ def fix_symbol_yahoo(symbol):
 from datetime import datetime, time as dtime
 
 def is_market_open():
-    now_utc = datetime.utcnow().replace(tzinfo=pytz.utc)
-    eastern = pytz.timezone('US/Eastern')
-    now_est = now_utc.astimezone(eastern)
-    market_open = dtime(9, 30)
-    market_close = dtime(16, 0)
-    return market_open <= now_est.time() <= market_close
+    now_utc = datetime.now(timezone.utc)
+    cet = pytz.timezone('Europe/Warsaw')  # Obsługuje CET/CEST automatycznie
+    now_cet = now_utc.astimezone(cet)
+    market_open = dtime(9, 0)
+    market_close = dtime(17, 10)
+    return market_open <= now_cet.time() <= market_close
 
 DATA_DIR = "WIG20_data"
 MAX_DAYS_OLD = 10

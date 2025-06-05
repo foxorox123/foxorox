@@ -1,71 +1,112 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Foxorox - Analiza giełdowa</title>
+  <title>Foxorox Analyzer</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
+      padding: 20px;
       background: #f4f4f4;
-      padding: 40px;
-      text-align: center;
     }
-    form {
-      background: white;
-      padding: 30px;
-      border-radius: 8px;
-      display: inline-block;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    h1 {
+      color: #333;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
     }
     input, button {
-      padding: 10px;
-      margin: 10px;
-      font-size: 16px;
+      padding: 8px;
+      margin-top: 5px;
     }
     #result {
       margin-top: 20px;
-      font-weight: bold;
+      background: white;
+      padding: 10px;
+      border-radius: 6px;
+    }
+    #chart {
+      margin-top: 40px;
     }
   </style>
 </head>
 <body>
-  <h1>📊 Foxorox - Webowa analiza spółek giełdowych</h1>
-  <form id="analyzeForm">
-    <input type="text" id="symbol" placeholder="Symbol np. AAPL" required>
-    <input type="number" id="threshold" value="1.0" step="0.1" min="0.1" max="10" required>
-    <button type="submit">Analizuj</button>
-  </form>
+  <h1>📊 Foxorox AI Stock Analyzer</h1>
+
+  <label for="symbol">Stock symbol (e.g., AAPL):</label>
+  <input id="symbol" placeholder="Enter symbol" />
+
+  <label for="threshold">Gap threshold (%):</label>
+  <input id="threshold" type="number" step="0.1" value="1.0" />
+
+  <button onclick="analyze()">🔍 Analyze</button>
 
   <div id="result"></div>
 
+  <div id="chart"></div>
+
   <script>
-    document.getElementById("analyzeForm").addEventListener("submit", async function (e) {
-      e.preventDefault();
-      const symbol = document.getElementById("symbol").value;
-      const threshold = document.getElementById("threshold").value;
+    async function analyze() {
+      const symbol = document.getElementById("symbol").value.trim();
+      const threshold = parseFloat(document.getElementById("threshold").value);
       const resultDiv = document.getElementById("result");
-      resultDiv.innerHTML = "⏳ Przetwarzanie...";
+      const chartDiv = document.getElementById("chart");
+
+      if (!symbol) {
+        alert("Please enter a stock symbol.");
+        return;
+      }
+
+      resultDiv.textContent = "Analyzing...";
+      chartDiv.innerHTML = "";
 
       try {
-        const res = await fetch("/analyze", {
+        const response = await fetch("/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ symbol, threshold })
         });
 
-        const data = await res.json();
+        const data = await response.json();
         if (data.error) {
-          resultDiv.innerHTML = "❌ Błąd: " + data.error;
-        } else {
-          resultDiv.innerHTML = `
-            📈 Gap: ${data.gap_probability}<br>
-            🕯️ Świeca: ${data.candle_prediction} (${data.candle_probability})
-          `;
+          resultDiv.textContent = `❌ Error: ${data.error}`;
+          return;
         }
+
+        resultDiv.innerHTML = `
+          <strong>Symbol:</strong> ${symbol.toUpperCase()}<br>
+          <strong>Gap Probability:</strong> ${data.gap_probability}<br>
+          <strong>Next Candle:</strong> ${data.candle_prediction}<br>
+          <strong>Candle Probability:</strong> ${data.candle_probability}
+        `;
+
+        // Build candlestick chart
+        const ohlc = data.ohlc;
+        const trace = {
+          x: ohlc.map(row => row.Date),
+          open: ohlc.map(row => row.Open),
+          high: ohlc.map(row => row.High),
+          low: ohlc.map(row => row.Low),
+          close: ohlc.map(row => row.Close),
+          type: 'candlestick',
+          xaxis: 'x',
+          yaxis: 'y'
+        };
+
+        const layout = {
+          title: `Candlestick chart: ${symbol.toUpperCase()}`,
+          xaxis: { type: 'category', tickangle: -45 },
+          yaxis: { title: 'Price' },
+          dragmode: 'zoom'
+        };
+
+        Plotly.newPlot("chart", [trace], layout);
       } catch (err) {
-        resultDiv.innerHTML = "❌ Wystąpił błąd przy wysyłaniu danych.";
+        resultDiv.textContent = `❌ Request failed: ${err}`;
       }
-    });
+    }
   </script>
 </body>
 </html>

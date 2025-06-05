@@ -72,7 +72,7 @@ def train_models(df, gap_threshold=1.0):
 
     return gap_model, candle_model
 
-# === API ROUTES ===
+# === ROUTES ===
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -90,14 +90,18 @@ def analyze():
         candle_proba = candle_model.predict_proba(latest)[0][1]
         candle_color = "white" if candle_proba > 0.5 else "black"
 
+        df_recent = df.tail(60).copy()
+        df_recent['Date'] = df_recent['Date'].dt.strftime('%Y-%m-%d')
+        ohlc = df_recent.to_dict(orient='records')
+
         return jsonify({
             "gap_probability": f"{gap_proba * 100:.2f}%",
             "candle_prediction": candle_color,
-            "candle_probability": f"{candle_proba * 100:.2f}%"
+            "candle_probability": f"{candle_proba * 100:.2f}%",
+            "ohlc": ohlc
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

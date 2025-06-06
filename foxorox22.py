@@ -32,6 +32,8 @@ def fetch_data(symbol):
 
     def download():
         df = yf.Ticker(symbol).history(period="300d")
+        if df.empty:
+            raise ValueError(f"Brak danych dla symbolu '{symbol.upper()}'. Sprawdź, czy symbol jest poprawny.")
         df.reset_index(inplace=True)
         df = df[['Date', 'Open', 'High', 'Low', 'Close', 'Volume']]
         df.to_csv(file_path, index=False)
@@ -39,6 +41,9 @@ def fetch_data(symbol):
 
     if os.path.exists(file_path):
         df = pd.read_csv(file_path, parse_dates=['Date'])
+        if df.empty:
+            return download()
+
         last_date = df['Date'].max().date()
         today = datetime.today().date()
         if (today - last_date).days > 5:
@@ -73,9 +78,9 @@ def train_models(df, gap_threshold=1.0):
     return gap_model, candle_model
 
 # === ROUTES ===
-@app.route("/")
-def home():
-    return render_template("index.html")
+@app.route("/tickers")
+def tickers():
+    return send_from_directory("static/data", "sp500.json")
 
 @app.route("/analyze", methods=["POST"])
 def analyze():

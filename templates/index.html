@@ -21,6 +21,22 @@
       padding: 8px;
       margin-top: 5px;
     }
+    #autocomplete-list {
+      border: 1px solid #ccc;
+      background: white;
+      max-height: 200px;
+      overflow-y: auto;
+      position: absolute;
+      z-index: 1000;
+      width: 300px;
+    }
+    #autocomplete-list div {
+      padding: 5px;
+      cursor: pointer;
+    }
+    #autocomplete-list div:hover {
+      background-color: #f0f0f0;
+    }
     #result {
       margin-top: 20px;
       background: white;
@@ -35,8 +51,9 @@
 <body>
   <h1>📊 Foxorox AI Stock Analyzer</h1>
 
-  <label for="symbol">Stock symbol (e.g., AAPL):</label>
-  <input id="symbol" placeholder="Enter symbol" />
+  <label for="symbol">Stock symbol or company name:</label>
+  <input id="symbol" placeholder="Enter symbol or name" autocomplete="off" />
+  <div id="autocomplete-list"></div>
 
   <label for="threshold">Gap threshold (%):</label>
   <input id="threshold" type="number" step="0.1" value="1.0" />
@@ -44,10 +61,54 @@
   <button onclick="analyze()">🔍 Analyze</button>
 
   <div id="result"></div>
-
   <div id="chart"></div>
 
   <script>
+    let tickerData = [];
+
+    async function loadTickers() {
+      const response = await fetch("/tickers");
+      const json = await response.json();
+      tickerData = json.companies;
+    }
+
+    function setupAutocomplete() {
+      const input = document.getElementById("symbol");
+      const list = document.getElementById("autocomplete-list");
+
+      input.addEventListener("input", function () {
+        const val = this.value.toLowerCase();
+        list.innerHTML = "";
+        if (!val || val.length < 2) return;
+
+        const matches = tickerData.filter(t =>
+          t.symbol.toLowerCase().includes(val) ||
+          t.name.toLowerCase().includes(val)
+        ).slice(0, 15);
+
+        matches.forEach(item => {
+          const div = document.createElement("div");
+          div.innerHTML = `<strong>${item.symbol}</strong> – ${item.name}`;
+          div.onclick = () => {
+            input.value = item.symbol;
+            list.innerHTML = "";
+          };
+          list.appendChild(div);
+        });
+      });
+
+      document.addEventListener("click", (e) => {
+        if (e.target.id !== "symbol") {
+          list.innerHTML = "";
+        }
+      });
+    }
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      await loadTickers();
+      setupAutocomplete();
+    });
+
     async function analyze() {
       const symbol = document.getElementById("symbol").value.trim();
       const threshold = parseFloat(document.getElementById("threshold").value);
@@ -69,11 +130,13 @@
           body: JSON.stringify({ symbol, threshold })
         });
 
-        const data = await response.json();
-        if (data.error) {
-          resultDiv.textContent = `❌ Error: ${data.error}`;
+        if (!response.ok) {
+          const errorData = await response.json();
+          resultDiv.textContent = `❌ Error: ${errorData.error}`;
           return;
         }
+
+        const data = await response.json();
 
         resultDiv.innerHTML = `
           <strong>Symbol:</strong> ${symbol.toUpperCase()}<br>
@@ -82,7 +145,6 @@
           <strong>Candle Probability:</strong> ${data.candle_probability}
         `;
 
-        // Build candlestick chart
         const ohlc = data.ohlc;
         const trace = {
           x: ohlc.map(row => row.Date),

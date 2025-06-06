@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify
+from flask import send_from_directory
 import pandas as pd
 import yfinance as yf
 from catboost import CatBoostClassifier
@@ -107,6 +108,9 @@ def analyze():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+@app.route("/")
+def home():
+    return "<h1>API działa!</h1><p>Użyj POST /analyze lub GET /tickers</p>"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

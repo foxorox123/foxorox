@@ -110,7 +110,6 @@ def analyze():
         return jsonify({"error": str(e)}), 500
 @app.route("/")
 def home():
-    return "<h1>API działa!</h1><p>Użyj POST /analyze lub GET /tickers</p>"
-
+    return render_template("index.html")
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
